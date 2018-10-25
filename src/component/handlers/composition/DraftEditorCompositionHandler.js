@@ -146,11 +146,11 @@ const DraftEditorCompositionHandler = {
       inCompositionMode: false,
     });
 
+    const contentState = editorState.getCurrentContent();
+    const selectionState = editorState.getSelection();
+
     const currentStyle = editorState.getCurrentInlineStyle();
-    const entityKey = getEntityKeyForSelection(
-      editorState.getCurrentContent(),
-      editorState.getSelection(),
-    );
+    const entityKey = getEntityKeyForSelection(contentState, selectionState);
 
     const mustReset =
       !composedChars ||
@@ -159,7 +159,16 @@ const DraftEditorCompositionHandler = {
       entityKey !== null;
 
     if (mustReset) {
-      editor.restoreEditorDOM();
+      const anchorKey = selectionState.getAnchorKey();
+      const focusKey = selectionState.getFocusKey();
+
+      if (anchorKey === focusKey) {
+        // Update the block which currently have focus
+        editor.restoreEditorBlockDOM(focusKey);
+      } else {
+        // If selection contains 2 or more blocks, reset the whole contents
+        editor.restoreEditorDOM();
+      }
     }
 
     editor.exitCurrentMode();
@@ -178,17 +187,21 @@ const DraftEditorCompositionHandler = {
       ) {
         return;
       }
-      // If characters have been composed, re-rendering with the update
-      // is sufficient to reset the editor.
-      const contentState = DraftModifier.replaceText(
-        editorState.getCurrentContent(),
-        editorState.getSelection(),
-        composedChars,
-        currentStyle,
-        entityKey,
-      );
+
       editor.update(
-        EditorState.push(editorState, contentState, 'insert-characters'),
+        EditorState.push(
+          editorState,
+          // If characters have been composed, re-rendering with the update
+          // is sufficient to reset the editor.
+          DraftModifier.replaceText(
+            contentState,
+            selectionState,
+            composedChars,
+            currentStyle,
+            entityKey,
+          ),
+          'insert-characters',
+        ),
       );
       return;
     }
