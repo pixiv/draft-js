@@ -630,9 +630,20 @@ class DraftEditor extends React.Component<DraftEditorProps, State> {
         : 1,
     );
 
-    this.setState({blockKeyRestoreMap}, () => {
-      this.focus(scrollPosition);
-    });
+    // Wrap state updates in `flushControlled`. In sync mode, this is
+    // effectively a no-op. In async mode, this ensures all updates scheduled
+    // inside are flushed before React yields to the browser.
+    if (flushControlled) {
+      flushControlled(() => {
+        this.setState({blockKeyRestoreMap}, () => {
+          this.focus(scrollPosition);
+        });
+      })
+    } else {
+      this.setState({blockKeyRestoreMap}, () => {
+        this.focus(scrollPosition);
+      });
+    }
   };
 
   /**
