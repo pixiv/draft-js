@@ -31,6 +31,7 @@ const React = require('React');
 const Scroll = require('Scroll');
 const Style = require('Style');
 const UserAgent = require('UserAgent');
+const {Map} = require('immutable');
 
 const cx = require('cx');
 const generateRandomKey = require('generateRandomKey');
@@ -57,7 +58,10 @@ const handlerMap = {
   render: null,
 };
 
-type State = {contentsKey: number, ...};
+type State = {
+  contentsKey: number,
+  blockKeyRestoreMap: Map,
+};
 
 let didInitODS = false;
 
@@ -190,6 +194,10 @@ class DraftEditor extends React.Component<DraftEditorProps, State> {
   setMode: (mode: DraftEditorModes) => void;
   exitCurrentMode: () => void;
   restoreEditorDOM: (scrollPosition?: DraftScrollPosition) => void;
+  restoreEditorBlockDOM: (
+    blockKey: String,
+    scrollPosition?: DraftScrollPosition,
+  ) => void;
   setClipboard: (clipboard: ?BlockMap) => void;
   getClipboard: () => ?BlockMap;
   getEditorKey: () => string;
@@ -253,8 +261,12 @@ class DraftEditor extends React.Component<DraftEditorProps, State> {
       });
     }
 
-    // See `restoreEditorDOM()`.
-    this.state = {contentsKey: 0};
+    this.state = {
+      // See `restoreEditorDOM()`.
+      contentsKey: 0,
+      // See `restoreEditorBlockDOM()`.
+      blockKeyRestoreMap: new Map({}),
+    };
   }
 
   /**
@@ -344,6 +356,7 @@ class DraftEditor extends React.Component<DraftEditorProps, State> {
       textAlignment,
       textDirectionality,
     } = this.props;
+    const {blockKeyRestoreMap} = this.state;
 
     const rootClass = cx({
       'DraftEditor/root': true,
@@ -383,6 +396,7 @@ class DraftEditor extends React.Component<DraftEditorProps, State> {
       editorState,
       preventScroll,
       textDirectionality,
+      blockKeyRestoreMap,
     };
 
     return (
@@ -596,6 +610,27 @@ class DraftEditor extends React.Component<DraftEditorProps, State> {
     scrollPosition?: DraftScrollPosition,
   ): void => {
     this.setState({contentsKey: this.state.contentsKey + 1}, () => {
+      this.focus(scrollPosition);
+    });
+  };
+
+  restoreEditorBlockDOM: (
+    blockKey: string,
+    scrollPosition?: DraftScrollPosition,
+  ) => void = (
+    blockKey: string,
+    scrollPosition?: DraftScrollPosition,
+  ): void => {
+    let {blockKeyRestoreMap} = this.state;
+
+    blockKeyRestoreMap = blockKeyRestoreMap.set(
+      blockKey,
+      blockKeyRestoreMap.has(blockKey)
+        ? blockKeyRestoreMap.get(blockKey) + 1
+        : 1,
+    );
+
+    this.setState({blockKeyRestoreMap}, () => {
       this.focus(scrollPosition);
     });
   };

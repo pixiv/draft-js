@@ -226,7 +226,14 @@ const DraftEditorCompositionHandler = {
     );
     const compositionEndSelectionState = documentSelection.selectionState;
 
-    editor.restoreEditorDOM();
+    const anchorKey = documentSelection.selectionState.getAnchorKey();
+    const focusKey = documentSelection.selectionState.getFocusKey();
+
+    if (anchorKey === focusKey) {
+      editor.restoreEditorBlockDOM(focusKey);
+    } else {
+      editor.restoreEditorDOM();
+    }
 
     // See:
     // - https://github.com/facebook/draft-js/issues/2093
